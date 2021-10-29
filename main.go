@@ -1,13 +1,26 @@
 package main
 
 import (
-	"github.com/dailyscoop/dailyscoop-backend/server"
+	"context"
+
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+
+	"dailyscoop-backend/server"
+	"dailyscoop-backend/service"
 )
 
 func main() {
-	s := server.NewServer()
+	mc, err := mongo.Connect(context.Background(), options.Client().ApplyURI("mongodb://localhost"))
+	if err != nil {
+		panic(err)
+	}
+	defer mc.Disconnect(context.Background())
 
-	s.GET("/login", s.Login)
+	us := service.NewUserService(mc)
+	s := server.NewServer(us)
+
+	s.POST("/login", s.Login)
 
 	s.Logger.Fatal(s.Echo.Start(":8080"))
 }
