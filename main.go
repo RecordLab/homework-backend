@@ -20,7 +20,7 @@ func main() {
 	us := service.NewUserService(mc)
 	s := server.NewServer(us)
 
-	s.POST("/login", s.Login)
+	s.RegisterRoutes()
 
-	s.Logger.Fatal(s.Echo.Start(":8080"))
+	s.Logger.Fatal(s.Start(":8080"))
 }

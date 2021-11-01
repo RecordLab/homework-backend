@@ -1,6 +1,13 @@
 package model
 
+const (
+	UserIDKey = "id"
+	UserPasswordKey = "password"
+	UserNicknameKey = "nickname"
+)
+
 type User struct {
-	Username string
+	ID string
 	Password string
+	Nickname string
 }

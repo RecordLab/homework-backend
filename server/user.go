@@ -11,13 +11,13 @@ import (
 
 func (s *Server) Login(c echo.Context) error {
 	var req struct {
-		Username string
+		ID string
 		Password string
 	}
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
-	user, err := s.us.UserByUsername(c.Request().Context(), req.Username)
+	user, err := s.us.UserByID(c.Request().Context(), req.ID)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return echo.NewHTTPError(http.StatusUnauthorized, "wrong username or password")
@@ -32,4 +32,34 @@ func (s *Server) Login(c echo.Context) error {
 	}{
 		Token: "ABCDEF",
 	})
+}
+
+func (s *Server) SignUp(c echo.Context) error {
+	var req struct {
+		ID string
+		Password string
+		Nickname string
+	}
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+	_, err := s.us.UserByID(c.Request().Context(), req.ID)
+	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
+		return err
+	} else if err == nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "이미 존재하는 ID입니다.")
+	}
+
+	_, err = s.us.UserByNickname(c.Request().Context(), req.Nickname)
+	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
+		return err
+	} else if err == nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "이미 존재하는 Nickname입니다.")
+	}
+
+	if err := s.us.RegisterUser(c.Request().Context(), req); err != nil {
+		return err
+	}
+
+	return c.NoContent(http.StatusCreated)
 }
