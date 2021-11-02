@@ -4,17 +4,20 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 
+	"dailyscoop-backend/config"
 	"dailyscoop-backend/service"
 )
 
 type Server struct {
 	*echo.Echo
-	us *service.UserService
+	cfg config.Config
+	us  *service.UserService
 }
 
-func NewServer(us *service.UserService) *Server {
+func NewServer(cfg config.Config, us *service.UserService) *Server {
 	s := &Server{
 		Echo: echo.New(),
+		cfg:  cfg,
 		us:   us,
 	}
 	s.Use(middleware.Logger())
