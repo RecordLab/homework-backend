@@ -3,12 +3,19 @@ package server
 import (
 	"errors"
 	"net/http"
+	"time"
 
+	"github.com/golang-jwt/jwt"
 	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/labstack/echo/v4"
 )
+
+type jwtCustomClaims struct {
+	ID string `json:"id"`
+	jwt.StandardClaims
+}
 
 func (s *Server) Login(c echo.Context) error {
 	var req struct {
@@ -28,10 +35,23 @@ func (s *Server) Login(c echo.Context) error {
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
 		return echo.NewHTTPError(http.StatusUnauthorized, "wrong username or password")
 	}
-	return c.JSON(http.StatusOK, struct {
-		Token string `json:"token"`
-	}{
-		Token: "ABCDEF",
+
+	claims := &jwtCustomClaims{
+		user.ID,
+		jwt.StandardClaims{
+			ExpiresAt: time.Now().Add(time.Hour * 72).Unix(),
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	t, err := token.SignedString([]byte("secret"))
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(http.StatusOK, echo.Map{
+		"token": t,
 	})
 }
 
