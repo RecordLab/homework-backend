@@ -41,4 +41,5 @@ func (s *Server) RegisterRoutes() {
 	diaries.Use(middleware.JWTWithConfig(jwtConfig))
 	diaries.GET("", s.GetDiaries)
 	diaries.POST("", s.CreateDiary)
+	diaries.GET("/:date", s.GetDiary)
 }

@@ -45,7 +45,10 @@ func (ds *DiaryService) DiaryByUserIDAndDate(ctx context.Context, userID string,
 	coll := ds.mc.Database(ds.cfg.Database).Collection("diaries")
 	var diary model.Diary
 	if err := coll.FindOne(ctx, bson.M{
-		model.DiaryDateKey: date,
+		model.DiaryDateKey: bson.M{
+			"$gte": date,
+			"$lt":  date.AddDate(0, 0, 1),
+		},
 		model.DiaryUserIDKey: userID,
 	}).Decode(&diary); err != nil {
 		return model.Diary{}, err

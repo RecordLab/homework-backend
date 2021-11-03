@@ -70,14 +70,14 @@ func (s *Server) SignUp(c echo.Context) error {
 	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
 		return err
 	} else if err == nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "이미 존재하는 ID입니다.")
+		return echo.NewHTTPError(http.StatusBadRequest, "id already exists")
 	}
 
 	_, err = s.us.UserByNickname(ctx, req.Nickname)
 	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
 		return err
 	} else if err == nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "이미 존재하는 Nickname입니다.")
+		return echo.NewHTTPError(http.StatusBadRequest, "nickname already exists")
 	}
 
 	if err := s.us.RegisterUser(ctx, req); err != nil {
