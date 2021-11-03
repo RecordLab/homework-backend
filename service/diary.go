@@ -55,7 +55,6 @@ func (ds *DiaryService) DiaryByUserIDAndDate(ctx context.Context, userID string,
 
 func (ds *DiaryService) CreateDiary(ctx context.Context, diary model.Diary) error {
 	coll := ds.mc.Database(ds.cfg.Database).Collection("diaries")
-	diary.Date = time.Now()
 	if _, err := coll.InsertOne(ctx, diary); err != nil {
 		return err
 	}

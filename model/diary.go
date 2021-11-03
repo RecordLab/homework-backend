@@ -7,7 +7,7 @@ import (
 const (
 	DiaryContentKey  = "content"
 	DiaryImageKey    = "image"
-	DiaryUserIDKey   = "userID"
+	DiaryUserIDKey   = "user_id"
 	DiaryDateKey     = "date"
 	DiaryEmotionsKey = "emotions"
 )
@@ -15,7 +15,7 @@ const (
 type Diary struct {
 	Content  string
 	Image    string
-	UserID   string
+	UserID   string `bson:"user_id"`
 	Date     time.Time
 	Emotions []string
 }

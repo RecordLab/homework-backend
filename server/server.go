@@ -28,11 +28,17 @@ func NewServer(cfg config.Config, us *service.UserService, ds *service.DiaryServ
 }
 
 func (s *Server) RegisterRoutes() {
+	jwtConfig := middleware.JWTConfig{
+		Claims:     &jwtCustomClaims{},
+		SigningKey: []byte("secret"),
+	}
 	api := s.Group("/api")
 
 	api.POST("/login", s.Login)
 	api.POST("/signup", s.SignUp)
 
 	diaries := api.Group("/diaries")
-	diaries.GET("/", s.GetDiaries)
+	diaries.Use(middleware.JWTWithConfig(jwtConfig))
+	diaries.GET("", s.GetDiaries)
+	diaries.POST("", s.CreateDiary)
 }
