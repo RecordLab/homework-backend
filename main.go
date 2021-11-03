@@ -24,7 +24,8 @@ func main() {
 	defer mc.Disconnect(context.Background())
 
 	us := service.NewUserService(cfg.Mongo, mc)
-	s := server.NewServer(cfg, us)
+	ds := service.NewDiaryService(cfg.Mongo, mc)
+	s := server.NewServer(cfg, us, ds)
 
 	s.RegisterRoutes()
 

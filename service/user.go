@@ -47,11 +47,8 @@ func (us *UserService) RegisterUser(ctx context.Context, user model.User) error 
 	if err != nil {
 		return err
 	}
-	if _, err := coll.InsertOne(ctx, bson.M{
-		model.UserIDKey:       user.ID,
-		model.UserNicknameKey: user.Nickname,
-		model.UserPasswordKey: string(h),
-	}); err != nil {
+	user.Password = string(h)
+	if _, err := coll.InsertOne(ctx, user); err != nil {
 		return err
 	}
 	return nil
