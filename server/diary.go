@@ -75,7 +75,7 @@ func (s *Server) CreateDiary(c echo.Context) error {
 		UserID:   s.GetUserID(c),
 		Date:     time.Now(),
 	}
-	if err := s.ds.CreateDiary(c.Request().Context(), diary); err != nil {
+	if err := s.ds.WriteDiary(c.Request().Context(), diary); err != nil {
 		return err
 	}
 	return c.NoContent(http.StatusOK)

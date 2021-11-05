@@ -6,6 +6,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"dailyscoop-backend/config"
 	"dailyscoop-backend/model"
@@ -43,22 +44,40 @@ func (ds *DiaryService) DiariesByUserID(ctx context.Context, userID string) ([]m
 
 func (ds *DiaryService) DiaryByUserIDAndDate(ctx context.Context, userID string, date time.Time) (model.Diary, error) {
 	coll := ds.mc.Database(ds.cfg.Database).Collection("diaries")
+	newDate := time.Date(
+		date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
 	var diary model.Diary
 	if err := coll.FindOne(ctx, bson.M{
-		model.DiaryDateKey: bson.M{
-			"$gte": date,
-			"$lt":  date.AddDate(0, 0, 1),
-		},
 		model.DiaryUserIDKey: userID,
+		model.DiaryDateKey: bson.M{
+			"$gte": newDate,
+			"$lt":  newDate.AddDate(0, 0, 1),
+		},
 	}).Decode(&diary); err != nil {
 		return model.Diary{}, err
 	}
 	return diary, nil
 }
 
-func (ds *DiaryService) CreateDiary(ctx context.Context, diary model.Diary) error {
+func (ds *DiaryService) WriteDiary(ctx context.Context, diary model.Diary) error {
 	coll := ds.mc.Database(ds.cfg.Database).Collection("diaries")
-	if _, err := coll.InsertOne(ctx, diary); err != nil {
+	date := time.Date(diary.Date.Year(), diary.Date.Month(), diary.Date.Day(), 0, 0, 0, 0, diary.Date.Location())
+	if _, err := coll.UpdateOne(ctx, bson.M{
+		model.DiaryDateKey: bson.M{
+			"$gte": date,
+			"$lt":  date.AddDate(0, 0, 1),
+		},
+		model.DiaryUserIDKey: diary.UserID,
+	}, bson.M{
+		"$set": bson.M{
+			model.DiaryContentKey:  diary.Content,
+			model.DiaryImageKey:    diary.Image,
+			model.DiaryEmotionsKey: diary.Emotions,
+		},
+		"$setOnInsert": bson.M{
+			model.DiaryDateKey: diary.Date,
+		},
+	}, options.Update().SetUpsert(true)); err != nil {
 		return err
 	}
 	return nil
