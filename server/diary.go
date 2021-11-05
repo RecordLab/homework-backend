@@ -80,3 +80,15 @@ func (s *Server) CreateDiary(c echo.Context) error {
 	}
 	return c.NoContent(http.StatusOK)
 }
+
+func (s *Server) DeleteDiary(c echo.Context) error {
+	dateString := c.Param("date")
+	date, err := time.Parse("2006-01-02", dateString)
+	if err != nil {
+		return err
+	}
+	if err := s.ds.DeleteDiary(c.Request().Context(), s.GetUserID(c), date); err != nil {
+		return err
+	}
+	return c.NoContent(http.StatusOK)
+}

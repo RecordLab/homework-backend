@@ -82,3 +82,20 @@ func (ds *DiaryService) WriteDiary(ctx context.Context, diary model.Diary) error
 	}
 	return nil
 }
+
+func (ds *DiaryService) DeleteDiary(ctx context.Context, userID string, date time.Time) error {
+	coll := ds.mc.Database(ds.cfg.Database).Collection("diaries")
+	newDate := time.Date(
+		date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
+	_, err := coll.DeleteOne(ctx, bson.M{
+		model.DiaryUserIDKey: userID,
+		model.DiaryDateKey: bson.M{
+			"$gte": newDate,
+			"$lt":  newDate.AddDate(0, 0, 1),
+		},
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}

@@ -41,4 +41,5 @@ func (s *Server) RegisterRoutes() {
 	diaries.GET("", s.GetDiaries)
 	diaries.POST("", s.CreateDiary)
 	diaries.GET("/:date", s.GetDiary)
+	diaries.DELETE("/:date", s.DeleteDiary)
 }
