@@ -62,6 +62,12 @@ func (ds *DiaryService) DiaryByUserIDAndDate(ctx context.Context, userID string,
 func (ds *DiaryService) WriteDiary(ctx context.Context, diary model.Diary) error {
 	coll := ds.mc.Database(ds.cfg.Database).Collection("diaries")
 	date := time.Date(diary.Date.Year(), diary.Date.Month(), diary.Date.Day(), 0, 0, 0, 0, diary.Date.Location())
+	themeColl := ds.mc.Database(ds.cfg.Database).Collection("themes")
+	if err := themeColl.FindOne(ctx, bson.M{
+		"name": diary.Theme,
+	}).Err(); err != nil {
+		return err
+	}
 	if _, err := coll.UpdateOne(ctx, bson.M{
 		model.DiaryDateKey: bson.M{
 			"$gte": date,
@@ -73,6 +79,7 @@ func (ds *DiaryService) WriteDiary(ctx context.Context, diary model.Diary) error
 			model.DiaryContentKey:  diary.Content,
 			model.DiaryImageKey:    diary.Image,
 			model.DiaryEmotionsKey: diary.Emotions,
+			model.DiaryThemeKey:    diary.Theme,
 		},
 		"$setOnInsert": bson.M{
 			model.DiaryDateKey: diary.Date,

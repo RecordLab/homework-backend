@@ -29,6 +29,7 @@ func (s *Server) GetDiaries(c echo.Context) error {
 		Image    string    `json:"image"`
 		Date     time.Time `json:"date"`
 		Emotions []string  `json:"emotions"`
+		Theme    string    `json:"theme"`
 	}
 	resp := []Diary{}
 	for _, diary := range diaries {
@@ -37,6 +38,7 @@ func (s *Server) GetDiaries(c echo.Context) error {
 			Image:    diary.Image,
 			Date:     diary.Date,
 			Emotions: diary.Emotions,
+			Theme:    diary.Theme,
 		})
 	}
 	return c.JSON(http.StatusOK, resp)
@@ -50,13 +52,27 @@ func (s *Server) GetDiary(c echo.Context) error {
 		return err
 	}
 	diary, err := s.ds.DiaryByUserIDAndDate(c.Request().Context(), userID, date)
+	type Diary struct {
+		Content  string    `json:"content"`
+		Image    string    `json:"image"`
+		Date     time.Time `json:"date"`
+		Emotions []string  `json:"emotions"`
+		Theme    string    `json:"theme"`
+	}
+	resp := Diary{
+		Content:  diary.Content,
+		Image:    diary.Image,
+		Date:     diary.Date,
+		Emotions: diary.Emotions,
+		Theme:    diary.Theme,
+	}
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return echo.NewHTTPError(http.StatusNotFound, "diary not found for given date")
 		}
 		return err
 	}
-	return c.JSON(http.StatusOK, diary)
+	return c.JSON(http.StatusOK, resp)
 }
 
 func (s *Server) CreateDiary(c echo.Context) error {
@@ -64,6 +80,7 @@ func (s *Server) CreateDiary(c echo.Context) error {
 		Content  string
 		Image    string
 		Emotions []string
+		Theme    string
 	}
 	if err := c.Bind(&req); err != nil {
 		return err
@@ -74,8 +91,12 @@ func (s *Server) CreateDiary(c echo.Context) error {
 		Emotions: req.Emotions,
 		UserID:   s.GetUserID(c),
 		Date:     time.Now(),
+		Theme:    req.Theme,
 	}
-	if err := s.ds.WriteDiary(c.Request().Context(), diary); err != nil {
+	err := s.ds.WriteDiary(c.Request().Context(), diary)
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return echo.NewHTTPError(http.StatusBadRequest, "theme does not exist")
+	} else if err != nil {
 		return err
 	}
 	return c.NoContent(http.StatusOK)

@@ -10,6 +10,7 @@ const (
 	DiaryUserIDKey   = "user_id"
 	DiaryDateKey     = "date"
 	DiaryEmotionsKey = "emotions"
+	DiaryThemeKey    = "theme"
 )
 
 type Diary struct {
@@ -18,4 +19,5 @@ type Diary struct {
 	UserID   string `bson:"user_id"`
 	Date     time.Time
 	Emotions []string
+	Theme    string
 }
