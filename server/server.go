@@ -36,7 +36,7 @@ func (s *Server) RegisterRoutes() {
 	diaries := api.Group("/diaries")
 	diaries.Use(middleware.JWTWithConfig(middleware.JWTConfig{
 		Claims:     &jwtCustomClaims{},
-		SigningKey: []byte("secret"),
+		SigningKey: []byte(s.cfg.Server.Secret),
 	}))
 	diaries.GET("", s.GetDiaries)
 	diaries.POST("", s.CreateDiary)

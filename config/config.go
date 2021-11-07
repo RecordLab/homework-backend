@@ -18,6 +18,7 @@ var DefaultConfig = Config{
 
 type ServerConfig struct {
 	BindAddr string `mapstructure:"bind_addr"`
+	Secret   string
 }
 
 var DefaultServerConfig = ServerConfig{

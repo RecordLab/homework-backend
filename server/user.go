@@ -45,7 +45,7 @@ func (s *Server) Login(c echo.Context) error {
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	t, err := token.SignedString([]byte("secret"))
+	t, err := token.SignedString([]byte(s.cfg.Server.Secret))
 	if err != nil {
 		return err
 	}

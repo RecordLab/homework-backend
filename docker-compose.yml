@@ -1,0 +1,13 @@
+version: '3'
+services:
+  dailyscoop-backend:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./dailyscoop.yml:/app/dailyscoop.yml
+  mongo:
+    image: mongo:latest
+    restart: always
+    volumes:
+      - ./data/db:/data/db
