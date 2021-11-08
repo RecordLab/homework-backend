@@ -38,7 +38,8 @@ func (s *Server) RegisterRoutes() {
 		Claims:     &jwtCustomClaims{},
 		SigningKey: []byte(s.cfg.Server.Secret),
 	}))
-	diaries.GET("", s.GetDiaries)
+	diaries.GET("", s.GetAllDiaries)
+	diaries.GET("/calendar", s.GetCalendar)
 	diaries.POST("", s.CreateDiary)
 	diaries.GET("/:date", s.GetDiary)
 	diaries.DELETE("/:date", s.DeleteDiary)

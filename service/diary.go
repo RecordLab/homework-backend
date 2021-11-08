@@ -43,6 +43,54 @@ func (ds *DiaryService) DiariesByUserID(ctx context.Context, userID string) ([]m
 	return diaries, nil
 }
 
+func (ds *DiaryService) Calendar(ctx context.Context, userID string, typ string, date time.Time) ([]model.Diary, error) {
+	coll := ds.mc.Database(ds.cfg.Database).Collection("diaries")
+	var diaries []model.Diary
+	if typ == "monthly" {
+		newDate := time.Date(date.Year(), date.Month(), 1, 0, 0, 0, 0, date.Location())
+		cursor, err := coll.Find(ctx, bson.M{
+			model.DiaryUserIDKey: userID,
+			model.DiaryDateKey: bson.M{
+				"$gte": newDate,
+				"$lt":  newDate.AddDate(0, 1, -1),
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
+		defer cursor.Close(ctx)
+		for cursor.Next(ctx) {
+			var diary model.Diary
+			if err := cursor.Decode(&diary); err != nil {
+				return nil, err
+			}
+			diaries = append(diaries, diary)
+		}
+	} else {
+		newDate := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
+		startDay := newDate.AddDate(0, 0, -int(newDate.Weekday()))
+		cursor, err := coll.Find(ctx, bson.M{
+			model.DiaryUserIDKey: userID,
+			model.DiaryDateKey: bson.M{
+				"$gte": startDay,
+				"$lt":  startDay.AddDate(0, 0, 7),
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
+		defer cursor.Close(ctx)
+		for cursor.Next(ctx) {
+			var diary model.Diary
+			if err := cursor.Decode(&diary); err != nil {
+				return nil, err
+			}
+			diaries = append(diaries, diary)
+		}
+	}
+	return diaries, nil
+}
+
 func (ds *DiaryService) DiaryByUserIDAndDate(ctx context.Context, userID string, date time.Time) (model.Diary, error) {
 	coll := ds.mc.Database(ds.cfg.Database).Collection("diaries")
 	newDate := time.Date(
