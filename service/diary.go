@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -62,12 +63,7 @@ func (ds *DiaryService) DiaryByUserIDAndDate(ctx context.Context, userID string,
 func (ds *DiaryService) WriteDiary(ctx context.Context, diary model.Diary) error {
 	coll := ds.mc.Database(ds.cfg.Database).Collection("diaries")
 	date := time.Date(diary.Date.Year(), diary.Date.Month(), diary.Date.Day(), 0, 0, 0, 0, diary.Date.Location())
-	themeColl := ds.mc.Database(ds.cfg.Database).Collection("themes")
-	if err := themeColl.FindOne(ctx, bson.M{
-		"name": diary.Theme,
-	}).Err(); err != nil {
-		return err
-	}
+
 	if _, err := coll.UpdateOne(ctx, bson.M{
 		model.DiaryDateKey: bson.M{
 			"$gte": date,
@@ -105,4 +101,17 @@ func (ds *DiaryService) DeleteDiary(ctx context.Context, userID string, date tim
 		return err
 	}
 	return nil
+}
+
+func (ds *DiaryService) ThemeExists(ctx context.Context, name string) (bool, error) {
+	coll := ds.mc.Database(ds.cfg.Database).Collection("themes")
+	if err := coll.FindOne(ctx, bson.M{
+		model.ThemeNameKey: name,
+	}).Err(); err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }

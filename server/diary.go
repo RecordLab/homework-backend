@@ -31,9 +31,13 @@ func (s *Server) GetDiaries(c echo.Context) error {
 		Emotions []string  `json:"emotions"`
 		Theme    string    `json:"theme"`
 	}
-	resp := []Diary{}
+	resp := struct{
+		Diaries []Diary `json:"diaries"`
+	}{
+		Diaries: []Diary{},
+	}
 	for _, diary := range diaries {
-		resp = append(resp, Diary{
+		resp.Diaries = append(resp.Diaries, Diary{
 			Content:  diary.Content,
 			Image:    diary.Image,
 			Date:     diary.Date,
@@ -85,18 +89,23 @@ func (s *Server) CreateDiary(c echo.Context) error {
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
+	theme := req.Theme
+	isExists, err := s.ds.ThemeExists(c.Request().Context(), theme)
+	if err != nil {
+		return err
+	}
+	if !isExists {
+		return echo.NewHTTPError(http.StatusBadRequest, "theme does not exist")
+	}
 	diary := model.Diary{
 		Content:  req.Content,
 		Image:    req.Image,
 		Emotions: req.Emotions,
 		UserID:   s.GetUserID(c),
 		Date:     time.Now(),
-		Theme:    req.Theme,
+		Theme:    theme,
 	}
-	err := s.ds.WriteDiary(c.Request().Context(), diary)
-	if errors.Is(err, mongo.ErrNoDocuments) {
-		return echo.NewHTTPError(http.StatusBadRequest, "theme does not exist")
-	} else if err != nil {
+	if err := s.ds.WriteDiary(c.Request().Context(), diary); err != nil {
 		return err
 	}
 	return c.NoContent(http.StatusOK)

@@ -51,7 +51,8 @@ func (s *Server) Login(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, echo.Map{
-		"token": t,
+		"token":    t,
+		"nickname": user.Nickname,
 	})
 }
 
