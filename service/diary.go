@@ -163,3 +163,16 @@ func (ds *DiaryService) ThemeExists(ctx context.Context, name string) (bool, err
 	}
 	return true, nil
 }
+
+func (ds *DiaryService) EmotionExists(ctx context.Context, name string) (bool, error) {
+	coll := ds.mc.Database(ds.cfg.Database).Collection("emotions")
+	if err := coll.FindOne(ctx, bson.M{
+		model.EmotionNameKey: name,
+	}).Err(); err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}

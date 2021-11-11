@@ -57,7 +57,7 @@ func (s *Server) GetCalendar(c echo.Context) error {
 		return err
 	}
 	if req.Date == "" || req.Type == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "missing parameter")
+		return echo.NewHTTPError(http.StatusBadRequest, "파라미터가 올바르지 않습니다.")
 	}
 	date, err := time.Parse("2006-01-02", req.Date)
 	if err != nil {
@@ -70,7 +70,7 @@ func (s *Server) GetCalendar(c echo.Context) error {
 			return err
 		}
 	} else {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid type")
+		return echo.NewHTTPError(http.StatusBadRequest, "존재하지 않는 타입입니다.")
 	}
 	type Diary struct {
 		Content  string    `json:"content"`
@@ -101,7 +101,7 @@ func (s *Server) GetDiary(c echo.Context) error {
 	userID := s.GetUserID(c)
 	date, err := time.Parse("2006-01-02", dateString)
 	if dateString == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "missing date parameter")
+		return echo.NewHTTPError(http.StatusBadRequest, "파라미터가 올바르지 않습니다.")
 	}
 	if err != nil {
 		return err
@@ -123,7 +123,7 @@ func (s *Server) GetDiary(c echo.Context) error {
 	}
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return echo.NewHTTPError(http.StatusNotFound, "diary not found for given date")
+			return echo.NewHTTPError(http.StatusNotFound, "해당 날짜에 일기가 존재하지 않습니다.")
 		}
 		return err
 	}
@@ -135,31 +135,49 @@ func (s *Server) CreateDiary(c echo.Context) error {
 		Content  string
 		Image    string
 		Emotions []string
+		Date     string
 		Theme    string
 	}
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
-	theme := req.Theme
-	isExists, err := s.ds.ThemeExists(c.Request().Context(), theme)
+	if req.Content == "" || req.Image == "" || len(req.Emotions) == 0 || req.Date == "" || req.Theme == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "파라미터가 올바르지 않습니다.")
+	}
+	isThemeExists, err := s.ds.ThemeExists(c.Request().Context(), req.Theme)
 	if err != nil {
 		return err
 	}
-	if !isExists {
-		return echo.NewHTTPError(http.StatusBadRequest, "theme does not exist")
+	if !isThemeExists {
+		return echo.NewHTTPError(http.StatusBadRequest, "존재하지 않는 테마입니다.")
+	}
+	for _, emotion := range req.Emotions {
+		isEmotionExists, err := s.ds.EmotionExists(c.Request().Context(), emotion)
+		if err != nil {
+			return err
+		}
+		if !isEmotionExists {
+			return echo.NewHTTPError(http.StatusBadRequest, "존재하지 않는 감정입니다.")
+		}
+	}
+	date, err := time.Parse("2006-01-02", req.Date)
+	if err != nil {
+		return err
 	}
 	diary := model.Diary{
 		Content:  req.Content,
 		Image:    req.Image,
 		Emotions: req.Emotions,
 		UserID:   s.GetUserID(c),
-		Date:     time.Now(),
-		Theme:    theme,
+		Date:     date,
+		Theme:    req.Theme,
 	}
 	if err := s.ds.WriteDiary(c.Request().Context(), diary); err != nil {
 		return err
 	}
-	return c.NoContent(http.StatusOK)
+	return c.JSON(http.StatusOK, echo.Map{
+		"message": "일기를 작성했습니다.",
+	})
 }
 
 func (s *Server) DeleteDiary(c echo.Context) error {
@@ -171,5 +189,7 @@ func (s *Server) DeleteDiary(c echo.Context) error {
 	if err := s.ds.DeleteDiary(c.Request().Context(), s.GetUserID(c), date); err != nil {
 		return err
 	}
-	return c.NoContent(http.StatusOK)
+	return c.JSON(http.StatusOK, echo.Map{
+		"message": "일기를 삭제했습니다.",
+	})
 }
