@@ -3,8 +3,10 @@ module dailyscoop-backend
 go 1.17
 
 require (
+	github.com/aws/aws-sdk-go v1.42.3
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/labstack/echo/v4 v4.6.1
+	github.com/satori/go.uuid v1.2.0
 	github.com/spf13/viper v1.9.0
 	go.mongodb.org/mongo-driver v1.7.3
 	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
@@ -15,6 +17,7 @@ require (
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/golang/snappy v0.0.3 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
+	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/klauspost/compress v1.13.6 // indirect
 	github.com/labstack/gommon v0.3.0 // indirect
 	github.com/magiconair/properties v1.8.5 // indirect

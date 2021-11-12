@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -16,6 +17,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	fmt.Println(cfg.AWS.Region)
 
 	mc, err := mongo.Connect(context.Background(), options.Client().ApplyURI(cfg.Mongo.URL))
 	if err != nil {
@@ -25,7 +27,8 @@ func main() {
 
 	us := service.NewUserService(cfg.Mongo, mc)
 	ds := service.NewDiaryService(cfg.Mongo, mc)
-	s := server.NewServer(cfg, us, ds)
+	as := service.NewAWSService(cfg.AWS)
+	s := server.NewServer(cfg, us, ds, as)
 
 	s.RegisterRoutes()
 

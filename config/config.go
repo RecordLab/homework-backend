@@ -9,6 +9,7 @@ import (
 type Config struct {
 	Server ServerConfig
 	Mongo  MongoConfig
+	AWS    AWSConfig
 }
 
 var DefaultConfig = Config{
@@ -35,10 +36,19 @@ var DefaultMongoConfig = MongoConfig{
 	Database: "dailyscoop",
 }
 
+type AWSConfig struct {
+	Bucket          string `mapstructure:"bucket"`
+	Region          string `mapstructure:"region"`
+	AccessKey       string `mapstructure:"access_key"`
+	SecretAccessKey string `mapstructure:"secret_access_key"`
+	URL             string `mapstructure:"url"`
+}
+
 func LoadConfig() (Config, error) {
 	viper.SetConfigName("dailyscoop")
 	viper.AddConfigPath(".")
 	cfg := DefaultConfig
+
 	if err := viper.ReadInConfig(); err != nil {
 		if errors.As(err, &viper.ConfigFileNotFoundError{}) {
 			return cfg, nil

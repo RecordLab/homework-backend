@@ -13,14 +13,16 @@ type Server struct {
 	cfg config.Config
 	us  *service.UserService
 	ds  *service.DiaryService
+	as  *service.AWSService
 }
 
-func NewServer(cfg config.Config, us *service.UserService, ds *service.DiaryService) *Server {
+func NewServer(cfg config.Config, us *service.UserService, ds *service.DiaryService, as *service.AWSService) *Server {
 	s := &Server{
 		Echo: echo.New(),
 		cfg:  cfg,
 		us:   us,
 		ds:   ds,
+		as:   as,
 	}
 	s.Use(middleware.Logger())
 	s.Use(middleware.Recover())
@@ -32,6 +34,7 @@ func (s *Server) RegisterRoutes() {
 
 	api.POST("/login", s.Login)
 	api.POST("/signup", s.SignUp)
+	api.POST("/image", s.ImageUpload)
 
 	diaries := api.Group("/diaries")
 	diaries.Use(middleware.JWTWithConfig(middleware.JWTConfig{
@@ -43,4 +46,5 @@ func (s *Server) RegisterRoutes() {
 	diaries.POST("", s.CreateDiary)
 	diaries.GET("/:date", s.GetDiary)
 	diaries.DELETE("/:date", s.DeleteDiary)
+
 }
