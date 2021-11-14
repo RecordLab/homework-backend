@@ -36,11 +36,23 @@ func (s *Server) RegisterRoutes() {
 	api.POST("/signup", s.SignUp)
 	api.POST("/image", s.ImageUpload)
 
+	user := api.Group("/user")
+	user.Use(middleware.JWTWithConfig(middleware.JWTConfig{
+		Claims:     &jwtCustomClaims{},
+		SigningKey: []byte(s.cfg.Server.Secret),
+	}))
+
+	user.GET("/:userID", s.GetUserInfo)
+	user.DELETE("/:userID", s.DeleteUser)
+	user.PUT("/change_password", s.ChangePassword)
+	user.PUT("/change_nickname", s.ChangeNickname)
+
 	diaries := api.Group("/diaries")
 	diaries.Use(middleware.JWTWithConfig(middleware.JWTConfig{
 		Claims:     &jwtCustomClaims{},
 		SigningKey: []byte(s.cfg.Server.Secret),
 	}))
+
 	diaries.GET("", s.GetAllDiaries)
 	diaries.GET("/calendar", s.GetCalendar)
 	diaries.POST("", s.CreateDiary)

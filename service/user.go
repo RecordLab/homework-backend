@@ -53,3 +53,45 @@ func (us *UserService) RegisterUser(ctx context.Context, user model.User) error 
 	}
 	return nil
 }
+
+func (us *UserService) DeleteUser(ctx context.Context, userID string) error {
+	coll := us.mc.Database(us.cfg.Database).Collection("users")
+	if _, err := coll.DeleteOne(ctx, bson.M{
+		model.UserIDKey: userID,
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (us *UserService) UpdateNickname(ctx context.Context, userID string, newNickname string) error {
+	coll := us.mc.Database(us.cfg.Database).Collection("users")
+	if _, err := coll.UpdateOne(ctx, bson.M{
+		model.UserIDKey: userID,
+	}, bson.M{
+		"$set": bson.M{
+			model.UserNicknameKey: newNickname,
+		},
+	}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (us *UserService) UpdatePassword(ctx context.Context, userID string, newPassword string) error {
+	coll := us.mc.Database(us.cfg.Database).Collection("users")
+	h, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	if _, err := coll.UpdateOne(ctx, bson.M{
+		model.UserIDKey: userID,
+	}, bson.M{
+		"$set": bson.M{
+			model.UserPasswordKey: h,
+		},
+	}); err != nil {
+		return err
+	}
+	return nil
+}

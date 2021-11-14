@@ -96,3 +96,80 @@ func (s *Server) SignUp(c echo.Context) error {
 		"message": "회원가입이 완료되었습니다.",
 	})
 }
+
+func (s *Server) DeleteUser(c echo.Context) error {
+	userID := s.GetUserID(c)
+	if userID != c.Param("userID") {
+		return echo.NewHTTPError(http.StatusBadRequest, "자신의 계정만 탈퇴할 수 있습니다.")
+	}
+	if err := s.us.DeleteUser(c.Request().Context(), userID); err != nil {
+		return err
+	}
+	return c.JSON(http.StatusOK, echo.Map{
+		"message": "회원탈퇴가 완료되었습니다.",
+	})
+}
+
+func (s *Server) ChangeNickname(c echo.Context) error {
+	var req struct {
+		NewNickname string
+	}
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+	if req.NewNickname == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "변경할 닉네임을 입력해주세요.")
+	}
+	if err := s.us.UpdateNickname(c.Request().Context(), s.GetUserID(c), req.NewNickname); err != nil {
+		return err
+	}
+	return c.JSON(http.StatusOK, echo.Map{
+		"message": "닉네임을 변경했습니다.",
+	})
+}
+
+func (s *Server) ChangePassword(c echo.Context) error {
+	var req struct {
+		Password    string
+		NewPassword string
+	}
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+	if req.Password == "" || req.NewPassword == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "비밀번호와 새 비밀번호를 모두 입력해주세요.")
+	}
+	userID := s.GetUserID(c)
+	user, err := s.us.UserByID(c.Request().Context(), userID)
+	if err != nil {
+		return err
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "비밀번호가 일치하지 않습니다.")
+	}
+	if err := s.us.UpdatePassword(c.Request().Context(), userID, req.NewPassword); err != nil {
+		return err
+	}
+	return c.JSON(http.StatusOK, echo.Map{
+		"message": "비밀번호가 변경되었습니다.",
+	})
+}
+
+func (s *Server) GetUserInfo(c echo.Context) error {
+	user, err := s.us.UserByID(c.Request().Context(), s.GetUserID(c))
+	if err != nil {
+		return err
+	}
+	userID := c.Param("userID")
+	if user.ID != userID {
+		return echo.NewHTTPError(http.StatusBadRequest, "자신의 정보만 열람할 수 있습니다.")
+	}
+	type resp struct {
+		ID       string `json:"id"`
+		Nickname string `json:"nickname"`
+	}
+	return c.JSON(http.StatusOK, resp{
+		ID:       user.ID,
+		Nickname: user.Nickname,
+	})
+}
