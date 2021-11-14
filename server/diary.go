@@ -20,9 +20,19 @@ func (s *Server) GetUserID(c echo.Context) string {
 }
 
 func (s *Server) GetAllDiaries(c echo.Context) error {
-	diaries, err := s.ds.DiariesByUserID(c.Request().Context(), s.GetUserID(c))
-	if err != nil {
-		return err
+	var diaries []model.Diary
+	var err error
+	content := c.QueryParam("search")
+	if content == "" {
+		diaries, err = s.ds.DiariesByUserID(c.Request().Context(), s.GetUserID(c))
+		if err != nil {
+			return err
+		}
+	} else {
+		diaries, err = s.ds.FindDiaries(c.Request().Context(), s.GetUserID(c), content)
+		if err != nil {
+			return err
+		}
 	}
 	type Diary struct {
 		Content  string    `json:"content"`
@@ -192,4 +202,35 @@ func (s *Server) DeleteDiary(c echo.Context) error {
 	return c.JSON(http.StatusOK, echo.Map{
 		"message": "일기를 삭제했습니다.",
 	})
+}
+
+func (s *Server) SearchDiaries(c echo.Context) error {
+	content := c.QueryParam("search")
+	userID := s.GetUserID(c)
+	diaries, err := s.ds.FindDiaries(c.Request().Context(), userID, content)
+	if err != nil {
+		return err
+	}
+	type Diary struct {
+		Content  string    `json:"content"`
+		Image    string    `json:"image"`
+		Date     time.Time `json:"date"`
+		Emotions []string  `json:"emotions"`
+		Theme    string    `json:"theme"`
+	}
+	resp := struct {
+		Diaries []Diary `json:"diaries"`
+	}{
+		Diaries: []Diary{},
+	}
+	for _, diary := range diaries {
+		resp.Diaries = append(resp.Diaries, Diary{
+			Content:  diary.Content,
+			Image:    diary.Image,
+			Date:     diary.Date,
+			Emotions: diary.Emotions,
+			Theme:    diary.Theme,
+		})
+	}
+	return c.JSON(http.StatusOK, resp)
 }

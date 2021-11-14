@@ -27,7 +27,10 @@ func NewDiaryService(cfg config.MongoConfig, mc *mongo.Client) *DiaryService {
 
 func (ds *DiaryService) DiariesByUserID(ctx context.Context, userID string) ([]model.Diary, error) {
 	coll := ds.mc.Database(ds.cfg.Database).Collection("diaries")
-	cursor, err := coll.Find(ctx, bson.M{model.DiaryUserIDKey: userID})
+	option := options.Find().SetSort(bson.M{
+		model.DiaryDateKey: 1,
+	})
+	cursor, err := coll.Find(ctx, bson.M{model.DiaryUserIDKey: userID}, option)
 	if err != nil {
 		return nil, err
 	}
@@ -45,6 +48,9 @@ func (ds *DiaryService) DiariesByUserID(ctx context.Context, userID string) ([]m
 
 func (ds *DiaryService) Calendar(ctx context.Context, userID string, typ string, date time.Time) ([]model.Diary, error) {
 	coll := ds.mc.Database(ds.cfg.Database).Collection("diaries")
+	option := options.Find().SetSort(bson.M{
+		model.DiaryDateKey: 1,
+	})
 	var diaries []model.Diary
 	if typ == "monthly" {
 		newDate := time.Date(date.Year(), date.Month(), 1, 0, 0, 0, 0, date.Location())
@@ -54,7 +60,7 @@ func (ds *DiaryService) Calendar(ctx context.Context, userID string, typ string,
 				"$gte": newDate,
 				"$lt":  newDate.AddDate(0, 1, -1),
 			},
-		})
+		}, option)
 		if err != nil {
 			return nil, err
 		}
@@ -75,7 +81,7 @@ func (ds *DiaryService) Calendar(ctx context.Context, userID string, typ string,
 				"$gte": startDay,
 				"$lt":  startDay.AddDate(0, 0, 7),
 			},
-		})
+		}, option)
 		if err != nil {
 			return nil, err
 		}
@@ -175,4 +181,29 @@ func (ds *DiaryService) EmotionExists(ctx context.Context, name string) (bool, e
 		return false, err
 	}
 	return true, nil
+}
+
+func (ds *DiaryService) FindDiaries(ctx context.Context, userID string, content string) ([]model.Diary, error) {
+	coll := ds.mc.Database(ds.cfg.Database).Collection("diaries")
+	option := options.Find().SetSort(bson.M{
+		model.DiaryDateKey: 1,
+	})
+	cursor, err := coll.Find(ctx, bson.M{
+		model.DiaryUserIDKey: userID,
+		model.DiaryContentKey: bson.M{
+			"$regex": content,
+		},
+	}, option)
+	if err != nil {
+		return nil, err
+	}
+	var diaries []model.Diary
+	for cursor.Next(ctx) {
+		var diary model.Diary
+		if err := cursor.Decode(&diary); err != nil {
+			return nil, err
+		}
+		diaries = append(diaries, diary)
+	}
+	return diaries, nil
 }

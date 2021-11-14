@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -8,6 +9,7 @@ import (
 
 func (s *Server) ImageUpload(c echo.Context) error {
 	file, header, err := c.Request().FormFile("file")
+	fmt.Println(file)
 	if file == nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "파라미터가 잘못되었습니다.")
 	}

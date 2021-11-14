@@ -158,6 +158,9 @@ func (s *Server) ChangePassword(c echo.Context) error {
 func (s *Server) GetUserInfo(c echo.Context) error {
 	user, err := s.us.UserByID(c.Request().Context(), s.GetUserID(c))
 	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return echo.NewHTTPError(http.StatusBadRequest, "존재하지 않는 유저입니다.")
+		}
 		return err
 	}
 	userID := c.Param("userID")
