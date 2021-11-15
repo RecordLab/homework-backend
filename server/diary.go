@@ -234,3 +234,26 @@ func (s *Server) SearchDiaries(c echo.Context) error {
 	}
 	return c.JSON(http.StatusOK, resp)
 }
+
+func (s *Server) CountDiaries(c echo.Context) error {
+	userID := s.GetUserID(c)
+	typ := c.QueryParam("type")
+	if typ == "" || (typ != "weekly" && typ != "monthly" && typ != "yearly") {
+		return echo.NewHTTPError(http.StatusBadRequest, "타입이 잘못되었습니다.")
+	}
+	if c.QueryParam("date") == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "날짜를 입력해주세요.")
+	}
+	date, err := time.Parse("2006-01-02", c.QueryParam("date"))
+	if err != nil {
+		return err
+	}
+	diaryCount, dayCount, err := s.ds.CountDiaries(c.Request().Context(), typ, date, userID)
+	if err != nil {
+		return err
+	}
+	return c.JSON(http.StatusOK, echo.Map{
+		"diary_count": diaryCount,
+		"day_count":   dayCount,
+	})
+}

@@ -207,3 +207,48 @@ func (ds *DiaryService) FindDiaries(ctx context.Context, userID string, content 
 	}
 	return diaries, nil
 }
+
+func (ds *DiaryService) CountDiaries(ctx context.Context, typ string, date time.Time, userID string) (int64, int, error) {
+	coll := ds.mc.Database(ds.cfg.Database).Collection("diaries")
+	if typ == "weekly" {
+		newDate := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
+		startDate := newDate.AddDate(0, 0, -int(newDate.Weekday()))
+		count, err := coll.CountDocuments(ctx, bson.M{
+			model.DiaryUserIDKey: userID,
+			model.DiaryDateKey: bson.M{
+				"$gte": startDate,
+				"$lt":  startDate.AddDate(0, 0, 7),
+			},
+		})
+		if err != nil {
+			return -1, -1, err
+		}
+		return count, 7, nil
+	} else if typ == "monthly" {
+		startDate := time.Date(date.Year(), date.Month(), 1, 0, 0, 0, 0, date.Location())
+		endDate := startDate.AddDate(0, 1, -1)
+		count, err := coll.CountDocuments(ctx, bson.M{
+			model.DiaryUserIDKey: userID,
+			model.DiaryDateKey: bson.M{
+				"$gte": startDate,
+				"$lt":  endDate,
+			},
+		})
+		if err != nil {
+			return -1, -1, err
+		}
+		return count, endDate.Day(), nil
+	}
+	startDate := time.Date(date.Year(), 1, 1, 0, 0, 0, 0, date.Location())
+	count, err := coll.CountDocuments(ctx, bson.M{
+		model.DiaryUserIDKey: userID,
+		model.DiaryDateKey: bson.M{
+			"$gte": startDate,
+			"$lt":  startDate.AddDate(1, 0, -1),
+		},
+	})
+	if err != nil {
+		return -1, -1, err
+	}
+	return count, time.Date(date.Year(), 12, 31, 0, 0, 0, 0, date.Location()).YearDay(), nil
+}
