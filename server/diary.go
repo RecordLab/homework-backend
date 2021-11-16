@@ -257,3 +257,25 @@ func (s *Server) CountDiaries(c echo.Context) error {
 		"day_count":   dayCount,
 	})
 }
+
+func (s *Server) CountEmotions(c echo.Context) error {
+	userID := s.GetUserID(c)
+	typ := c.QueryParam("type")
+	if typ == "" || (typ != "monthly" && typ != "yearly") {
+		return echo.NewHTTPError(http.StatusBadRequest, "타입이 잘못되었습니다.")
+	}
+	if c.QueryParam("date") == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "날짜를 입력해주세요.")
+	}
+	date, err := time.Parse("2006-01-02", c.QueryParam("date"))
+	if err != nil {
+		return err
+	}
+	emotions, err := s.ds.CountEmotions(c.Request().Context(), userID, typ, date)
+	if err != nil {
+		return err
+	}
+	return c.JSON(http.StatusOK, echo.Map{
+		"emotions": emotions,
+	})
+}

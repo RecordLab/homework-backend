@@ -252,3 +252,59 @@ func (ds *DiaryService) CountDiaries(ctx context.Context, typ string, date time.
 	}
 	return count, time.Date(date.Year(), 12, 31, 0, 0, 0, 0, date.Location()).YearDay(), nil
 }
+
+func (ds *DiaryService) CountEmotions(ctx context.Context, userID string, typ string, date time.Time) (map[string]int, error) {
+	emotionColl := ds.mc.Database(ds.cfg.Database).Collection("emotions")
+	cursor, err := emotionColl.Find(ctx, bson.M{})
+	if err != nil {
+		return nil, err
+	}
+	emotions := make(map[string]int)
+	for cursor.Next(ctx) {
+		var emotion model.Emotion
+		if err := cursor.Decode(&emotion); err != nil {
+			return nil, err
+		}
+		emotions[emotion.Name] = 0
+	}
+	coll := ds.mc.Database(ds.cfg.Database).Collection("diaries")
+	var diaryCursor *mongo.Cursor
+	if typ == "monthly" {
+		var err error
+		newDate := time.Date(date.Year(), date.Month(), 1, 0, 0, 0, 0, date.Location())
+		diaryCursor, err = coll.Find(ctx, bson.M{
+			model.DiaryUserIDKey: userID,
+			model.DiaryDateKey: bson.M{
+				"$gte": newDate,
+				"$lt":  newDate.AddDate(0, 1, -1),
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		var err error
+		newDate := time.Date(date.Year(), 1, 1, 0, 0, 0, 0, date.Location())
+		diaryCursor, err = coll.Find(ctx, bson.M{
+			model.DiaryUserIDKey: userID,
+			model.DiaryDateKey: bson.M{
+				"$gte": newDate,
+				"$lt":  newDate.AddDate(1, 0, -1),
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	for diaryCursor.Next(ctx) {
+		var diary model.Diary
+		if err := diaryCursor.Decode(&diary); err != nil {
+			return nil, err
+		}
+		for _, emotion := range diary.Emotions {
+			emotions[emotion] = emotions[emotion] + 1
+		}
+	}
+	return emotions, nil
+}
