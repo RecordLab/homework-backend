@@ -10,6 +10,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/labstack/echo/v4"
+
+	"dailyscoop-backend/model"
 )
 
 type jwtCustomClaims struct {
@@ -83,12 +85,11 @@ func (s *Server) SignUp(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "이미 존재하는 닉네임입니다.")
 	}
 
-	if err := s.us.RegisterUser(ctx, struct {
-		ID           string
-		Password     string
-		Nickname     string
-		ProfileImage string
-	}{ID: req.ID, Password: req.Password, Nickname: req.Nickname, ProfileImage: ""}); err != nil {
+	if err := s.us.RegisterUser(ctx, model.User{
+		ID:       req.ID,
+		Password: req.Password,
+		Nickname: req.Nickname,
+	}); err != nil {
 		return err
 	}
 
@@ -171,5 +172,23 @@ func (s *Server) GetUserInfo(c echo.Context) error {
 		ID:           user.ID,
 		Nickname:     user.Nickname,
 		ProfileImage: user.ProfileImage,
+	})
+}
+
+func (s *Server) SetProfileImage(c echo.Context) error {
+	var req struct {
+		Image string
+	}
+	if err := c.Bind(&req); err != nil {
+		return err
+	}
+	if req.Image == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "사진을 선택해주세요.")
+	}
+	if err := s.us.UpdateProfileImage(c.Request().Context(), s.GetUserID(c), req.Image); err != nil {
+		return err
+	}
+	return c.JSON(http.StatusOK, echo.Map{
+		"message": "프로필 사진을 변경하였습니다.",
 	})
 }

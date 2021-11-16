@@ -46,6 +46,7 @@ func (s *Server) RegisterRoutes() {
 	user.DELETE("", s.DeleteUser)
 	user.PUT("/change_password", s.ChangePassword)
 	user.PUT("/change_nickname", s.ChangeNickname)
+	user.PUT("/set_image", s.SetProfileImage)
 
 	diaries := api.Group("/diaries")
 	diaries.Use(middleware.JWTWithConfig(middleware.JWTConfig{

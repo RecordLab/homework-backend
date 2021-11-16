@@ -95,3 +95,17 @@ func (us *UserService) UpdatePassword(ctx context.Context, userID string, newPas
 	}
 	return nil
 }
+
+func (us *UserService) UpdateProfileImage(ctx context.Context, userID string, image string) error {
+	coll := us.mc.Database(us.cfg.Database).Collection("users")
+	if _, err := coll.UpdateOne(ctx, bson.M{
+		model.UserIDKey: userID,
+	}, bson.M{
+		"$set": bson.M{
+			model.UserProfileImageKey: image,
+		},
+	}); err != nil {
+		return err
+	}
+	return nil
+}
