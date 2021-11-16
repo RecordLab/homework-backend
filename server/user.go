@@ -98,11 +98,10 @@ func (s *Server) SignUp(c echo.Context) error {
 }
 
 func (s *Server) DeleteUser(c echo.Context) error {
-	userID := s.GetUserID(c)
-	if userID != c.Param("userID") {
-		return echo.NewHTTPError(http.StatusBadRequest, "자신의 계정만 탈퇴할 수 있습니다.")
-	}
-	if err := s.us.DeleteUser(c.Request().Context(), userID); err != nil {
+	if err := s.us.DeleteUser(c.Request().Context(), s.GetUserID(c)); err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return echo.NewHTTPError(http.StatusBadRequest, "존재하지 않는 유저입니다.")
+		}
 		return err
 	}
 	return c.JSON(http.StatusOK, echo.Map{
@@ -163,16 +162,14 @@ func (s *Server) GetUserInfo(c echo.Context) error {
 		}
 		return err
 	}
-	userID := c.Param("userID")
-	if user.ID != userID {
-		return echo.NewHTTPError(http.StatusBadRequest, "자신의 정보만 열람할 수 있습니다.")
-	}
 	type resp struct {
-		ID       string `json:"id"`
-		Nickname string `json:"nickname"`
+		ID           string `json:"id"`
+		Nickname     string `json:"nickname"`
+		ProfileImage string `json:"profile_image"`
 	}
 	return c.JSON(http.StatusOK, resp{
-		ID:       user.ID,
-		Nickname: user.Nickname,
+		ID:           user.ID,
+		Nickname:     user.Nickname,
+		ProfileImage: user.ProfileImage,
 	})
 }

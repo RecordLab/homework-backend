@@ -42,8 +42,8 @@ func (s *Server) RegisterRoutes() {
 		SigningKey: []byte(s.cfg.Server.Secret),
 	}))
 
-	user.GET("/:userID", s.GetUserInfo)
-	user.DELETE("/:userID", s.DeleteUser)
+	user.GET("", s.GetUserInfo)
+	user.DELETE("", s.DeleteUser)
 	user.PUT("/change_password", s.ChangePassword)
 	user.PUT("/change_nickname", s.ChangeNickname)
 
