@@ -3,6 +3,7 @@ package server
 import (
 	"errors"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt"
@@ -21,15 +22,22 @@ func (s *Server) GetUserID(c echo.Context) string {
 
 func (s *Server) GetAllDiaries(c echo.Context) error {
 	var diaries []model.Diary
-	var err error
+	sortStr := c.QueryParam("sort")
+	if sortStr != "1" && sortStr != "-1" {
+		return echo.NewHTTPError(http.StatusBadRequest, "정렬기준을 확인해주세요.")
+	}
+	sort, err := strconv.Atoi(sortStr)
+	if err != nil {
+		return nil
+	}
 	content := c.QueryParam("search")
 	if content == "" {
-		diaries, err = s.ds.DiariesByUserID(c.Request().Context(), s.GetUserID(c))
+		diaries, err = s.ds.DiariesByUserID(c.Request().Context(), s.GetUserID(c), sort)
 		if err != nil {
 			return err
 		}
 	} else {
-		diaries, err = s.ds.FindDiaries(c.Request().Context(), s.GetUserID(c), content)
+		diaries, err = s.ds.FindDiaries(c.Request().Context(), s.GetUserID(c), content, sort)
 		if err != nil {
 			return err
 		}
@@ -62,9 +70,17 @@ func (s *Server) GetCalendar(c echo.Context) error {
 	var req struct {
 		Date string `query:"date"`
 		Type string `query:"type"`
+		Sort string `query:"sort"`
 	}
 	if err := c.Bind(&req); err != nil {
 		return err
+	}
+	if req.Sort != "1" && req.Sort != "-1" {
+		return echo.NewHTTPError(http.StatusBadRequest, "정렬기준을 확인해주세요.")
+	}
+	sort, err := strconv.Atoi(req.Sort)
+	if err != nil {
+		return nil
 	}
 	if req.Date == "" || req.Type == "" {
 		return echo.NewHTTPError(http.StatusBadRequest, "파라미터가 올바르지 않습니다.")
@@ -75,7 +91,7 @@ func (s *Server) GetCalendar(c echo.Context) error {
 	}
 	var diaries []model.Diary
 	if req.Type == "monthly" || req.Type == "weekly" {
-		diaries, err = s.ds.Calendar(c.Request().Context(), s.GetUserID(c), req.Type, date)
+		diaries, err = s.ds.Calendar(c.Request().Context(), s.GetUserID(c), req.Type, date, sort)
 		if err != nil {
 			return err
 		}
@@ -202,37 +218,6 @@ func (s *Server) DeleteDiary(c echo.Context) error {
 	return c.JSON(http.StatusOK, echo.Map{
 		"message": "일기를 삭제했습니다.",
 	})
-}
-
-func (s *Server) SearchDiaries(c echo.Context) error {
-	content := c.QueryParam("search")
-	userID := s.GetUserID(c)
-	diaries, err := s.ds.FindDiaries(c.Request().Context(), userID, content)
-	if err != nil {
-		return err
-	}
-	type Diary struct {
-		Content  string    `json:"content"`
-		Image    string    `json:"image"`
-		Date     time.Time `json:"date"`
-		Emotions []string  `json:"emotions"`
-		Theme    string    `json:"theme"`
-	}
-	resp := struct {
-		Diaries []Diary `json:"diaries"`
-	}{
-		Diaries: []Diary{},
-	}
-	for _, diary := range diaries {
-		resp.Diaries = append(resp.Diaries, Diary{
-			Content:  diary.Content,
-			Image:    diary.Image,
-			Date:     diary.Date,
-			Emotions: diary.Emotions,
-			Theme:    diary.Theme,
-		})
-	}
-	return c.JSON(http.StatusOK, resp)
 }
 
 func (s *Server) CountDiaries(c echo.Context) error {

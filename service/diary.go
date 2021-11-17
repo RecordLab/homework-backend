@@ -25,10 +25,10 @@ func NewDiaryService(cfg config.MongoConfig, mc *mongo.Client) *DiaryService {
 	}
 }
 
-func (ds *DiaryService) DiariesByUserID(ctx context.Context, userID string) ([]model.Diary, error) {
+func (ds *DiaryService) DiariesByUserID(ctx context.Context, userID string, sort int) ([]model.Diary, error) {
 	coll := ds.mc.Database(ds.cfg.Database).Collection("diaries")
 	option := options.Find().SetSort(bson.M{
-		model.DiaryDateKey: 1,
+		model.DiaryDateKey: sort,
 	})
 	cursor, err := coll.Find(ctx, bson.M{model.DiaryUserIDKey: userID}, option)
 	if err != nil {
@@ -46,10 +46,10 @@ func (ds *DiaryService) DiariesByUserID(ctx context.Context, userID string) ([]m
 	return diaries, nil
 }
 
-func (ds *DiaryService) Calendar(ctx context.Context, userID string, typ string, date time.Time) ([]model.Diary, error) {
+func (ds *DiaryService) Calendar(ctx context.Context, userID string, typ string, date time.Time, sort int) ([]model.Diary, error) {
 	coll := ds.mc.Database(ds.cfg.Database).Collection("diaries")
 	option := options.Find().SetSort(bson.M{
-		model.DiaryDateKey: 1,
+		model.DiaryDateKey: sort,
 	})
 	var diaries []model.Diary
 	if typ == "monthly" {
@@ -183,10 +183,10 @@ func (ds *DiaryService) EmotionExists(ctx context.Context, name string) (bool, e
 	return true, nil
 }
 
-func (ds *DiaryService) FindDiaries(ctx context.Context, userID string, content string) ([]model.Diary, error) {
+func (ds *DiaryService) FindDiaries(ctx context.Context, userID string, content string, sort int) ([]model.Diary, error) {
 	coll := ds.mc.Database(ds.cfg.Database).Collection("diaries")
 	option := options.Find().SetSort(bson.M{
-		model.DiaryDateKey: 1,
+		model.DiaryDateKey: sort,
 	})
 	cursor, err := coll.Find(ctx, bson.M{
 		model.DiaryUserIDKey: userID,
