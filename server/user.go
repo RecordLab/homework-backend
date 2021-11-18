@@ -5,11 +5,15 @@ import (
 	"errors"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt"
+	"github.com/mitchellh/mapstructure"
 	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/crypto/bcrypt"
+	"google.golang.org/api/idtoken"
 
 	"github.com/labstack/echo/v4"
 
@@ -38,7 +42,11 @@ func (s *Server) Login(c echo.Context) error {
 			return err
 		}
 	} else if typ == "google" {
-
+		var err error
+		user, err = s.GoogleLogin(c)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		}
 	} else {
 		var err error
 		var req struct {
@@ -80,12 +88,12 @@ func (s *Server) Login(c echo.Context) error {
 }
 
 func (s *Server) KakaoLogin(c echo.Context) (model.User, error) {
-	authorization := "Bearer " + c.Request().Header.Get("Authorization")
+	token := "Bearer " + c.Request().Header.Get("Authorization")
 	req, err := http.NewRequest("GET", "https://kapi.kakao.com/v2/user/me", nil)
 	if err != nil {
 		return model.User{}, err
 	}
-	req.Header.Add("Authorization", authorization)
+	req.Header.Add("Authorization", token)
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -110,12 +118,45 @@ func (s *Server) KakaoLogin(c echo.Context) (model.User, error) {
 	if resp.StatusCode != 200 {
 		return model.User{}, echo.NewHTTPError(resp.StatusCode, result.Message)
 	}
-	user, err := s.us.UserByKakaoID(c.Request().Context(), result.ID)
+	user, err := s.us.UserByID(c.Request().Context(), strconv.Itoa(result.ID))
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			user = model.User{
-				KakaoID:  result.ID,
+				ID:       strconv.Itoa(result.ID),
 				Nickname: result.Properties.Nickname,
+			}
+			if err := s.us.RegisterUser(c.Request().Context(), user); err != nil {
+				return model.User{}, err
+			}
+		} else {
+			return model.User{}, err
+		}
+	}
+	return user, nil
+}
+
+func (s *Server) GoogleLogin(c echo.Context) (model.User, error) {
+	type TokenInfo struct {
+		Email   string
+		Name    string
+		Picture string
+	}
+	idToken := c.QueryParam("id_token")
+	v, err := idtoken.Validate(c.Request().Context(), idToken, os.Getenv("GOOGLE_KEY"))
+	if err != nil {
+		return model.User{}, err
+	}
+	var tokenInfo TokenInfo
+	if err := mapstructure.Decode(v.Claims, &tokenInfo); err != nil {
+		return model.User{}, err
+	}
+	user, err := s.us.UserByID(c.Request().Context(), tokenInfo.Email)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			user = model.User{
+				ID:           tokenInfo.Email,
+				Nickname:     tokenInfo.Name,
+				ProfileImage: tokenInfo.Picture,
 			}
 			if err := s.us.RegisterUser(c.Request().Context(), user); err != nil {
 				return model.User{}, err
