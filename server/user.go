@@ -1,7 +1,9 @@
 package server
 
 import (
+	"encoding/json"
 	"errors"
+	"io/ioutil"
 	"net/http"
 	"time"
 
@@ -27,22 +29,35 @@ func (s *Server) GetUserID(c echo.Context) string {
 }
 
 func (s *Server) Login(c echo.Context) error {
-	var req struct {
-		ID       string
-		Password string
-	}
-	if err := c.Bind(&req); err != nil {
-		return err
-	}
-	user, err := s.us.UserByID(c.Request().Context(), req.ID)
-	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
+	typ := c.QueryParam("type")
+	var user model.User
+	if typ == "kakao" {
+		var err error
+		user, err = s.KakaoLogin(c)
+		if err != nil {
+			return err
+		}
+	} else if typ == "google" {
+
+	} else {
+		var err error
+		var req struct {
+			ID       string
+			Password string
+		}
+		if err := c.Bind(&req); err != nil {
+			return err
+		}
+		user, err = s.us.UserByID(c.Request().Context(), req.ID)
+		if err != nil {
+			if errors.Is(err, mongo.ErrNoDocuments) {
+				return echo.NewHTTPError(http.StatusUnauthorized, "아이디나 비밀번호를 확인해주세요.")
+			}
+			return err
+		}
+		if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
 			return echo.NewHTTPError(http.StatusUnauthorized, "아이디나 비밀번호를 확인해주세요.")
 		}
-		return err
-	}
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
-		return echo.NewHTTPError(http.StatusUnauthorized, "아이디나 비밀번호를 확인해주세요.")
 	}
 
 	claims := &jwtCustomClaims{
@@ -53,7 +68,6 @@ func (s *Server) Login(c echo.Context) error {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
 	t, err := token.SignedString([]byte(s.cfg.Server.Secret))
 	if err != nil {
 		return err
@@ -63,6 +77,54 @@ func (s *Server) Login(c echo.Context) error {
 		"token":    t,
 		"nickname": user.Nickname,
 	})
+}
+
+func (s *Server) KakaoLogin(c echo.Context) (model.User, error) {
+	authorization := "Bearer " + c.Request().Header.Get("Authorization")
+	req, err := http.NewRequest("GET", "https://kapi.kakao.com/v2/user/me", nil)
+	if err != nil {
+		return model.User{}, err
+	}
+	req.Header.Add("Authorization", authorization)
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return model.User{}, err
+	}
+	defer resp.Body.Close()
+	type Response struct {
+		ID          int
+		ConnectedAt string `json:"connected_at"`
+		Properties  struct {
+			Nickname string
+		}
+		Message string `json:"msg"`
+		Code    int
+	}
+	var result Response
+	bytes, _ := ioutil.ReadAll(resp.Body)
+	if err = json.Unmarshal(bytes, &result); err != nil {
+		return model.User{}, err
+	}
+	if resp.StatusCode != 200 {
+		return model.User{}, echo.NewHTTPError(resp.StatusCode, result.Message)
+	}
+	user, err := s.us.UserByKakaoID(c.Request().Context(), result.ID)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			user = model.User{
+				KakaoID:  result.ID,
+				Nickname: result.Properties.Nickname,
+			}
+			if err := s.us.RegisterUser(c.Request().Context(), user); err != nil {
+				return model.User{}, err
+			}
+		} else {
+			return model.User{}, err
+		}
+	}
+	return user, nil
 }
 
 func (s *Server) SignUp(c echo.Context) error {

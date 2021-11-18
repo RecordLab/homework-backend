@@ -32,6 +32,17 @@ func (us *UserService) UserByID(ctx context.Context, id string) (model.User, err
 	return user, nil
 }
 
+func (us *UserService) UserByKakaoID(ctx context.Context, id int) (model.User, error) {
+	coll := us.mc.Database(us.cfg.Database).Collection("users")
+	var user model.User
+	if err := coll.FindOne(ctx, bson.M{
+		model.UserKakaoIDKey: id,
+	}).Decode(&user); err != nil {
+		return model.User{}, err
+	}
+	return user, nil
+}
+
 func (us *UserService) UserByNickname(ctx context.Context, nickname string) (model.User, error) {
 	coll := us.mc.Database(us.cfg.Database).Collection("users")
 	var user model.User
@@ -43,11 +54,13 @@ func (us *UserService) UserByNickname(ctx context.Context, nickname string) (mod
 
 func (us *UserService) RegisterUser(ctx context.Context, user model.User) error {
 	coll := us.mc.Database(us.cfg.Database).Collection("users")
-	h, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
-	if err != nil {
-		return err
+	if user.Password != "" {
+		h, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+		if err != nil {
+			return err
+		}
+		user.Password = string(h)
 	}
-	user.Password = string(h)
 	if _, err := coll.InsertOne(ctx, user); err != nil {
 		return err
 	}
