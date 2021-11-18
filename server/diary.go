@@ -6,19 +6,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/golang-jwt/jwt"
 	"github.com/labstack/echo/v4"
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"dailyscoop-backend/model"
 )
-
-func (s *Server) GetUserID(c echo.Context) string {
-	user := c.Get("user").(*jwt.Token)
-	claims := user.Claims.(*jwtCustomClaims)
-	id := claims.ID
-	return id
-}
 
 func (s *Server) GetAllDiaries(c echo.Context) error {
 	var diaries []model.Diary

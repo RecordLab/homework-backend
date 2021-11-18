@@ -27,8 +27,9 @@ func main() {
 
 	us := service.NewUserService(cfg.Mongo, mc)
 	ds := service.NewDiaryService(cfg.Mongo, mc)
+	fs := service.NewFavoriteService(cfg.Mongo, mc)
 	as := service.NewAWSService(cfg.AWS)
-	s := server.NewServer(cfg, us, ds, as)
+	s := server.NewServer(cfg, us, ds, fs, as)
 
 	s.RegisterRoutes()
 

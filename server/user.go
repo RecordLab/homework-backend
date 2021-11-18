@@ -19,6 +19,13 @@ type jwtCustomClaims struct {
 	jwt.StandardClaims
 }
 
+func (s *Server) GetUserID(c echo.Context) string {
+	user := c.Get("user").(*jwt.Token)
+	claims := user.Claims.(*jwtCustomClaims)
+	id := claims.ID
+	return id
+}
+
 func (s *Server) Login(c echo.Context) error {
 	var req struct {
 		ID       string

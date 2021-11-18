@@ -13,15 +13,17 @@ type Server struct {
 	cfg config.Config
 	us  *service.UserService
 	ds  *service.DiaryService
+	fs  *service.FavoriteService
 	as  *service.AWSService
 }
 
-func NewServer(cfg config.Config, us *service.UserService, ds *service.DiaryService, as *service.AWSService) *Server {
+func NewServer(cfg config.Config, us *service.UserService, ds *service.DiaryService, fs *service.FavoriteService, as *service.AWSService) *Server {
 	s := &Server{
 		Echo: echo.New(),
 		cfg:  cfg,
 		us:   us,
 		ds:   ds,
+		fs:   fs,
 		as:   as,
 	}
 	s.Use(middleware.Logger())
@@ -61,4 +63,14 @@ func (s *Server) RegisterRoutes() {
 	diaries.DELETE("/:date", s.DeleteDiary)
 	diaries.GET("/count", s.CountDiaries)
 	diaries.GET("/emotions", s.CountEmotions)
+
+	favorites := api.Group("/favorites")
+	favorites.Use(middleware.JWTWithConfig(middleware.JWTConfig{
+		Claims:     &jwtCustomClaims{},
+		SigningKey: []byte(s.cfg.Server.Secret),
+	}))
+
+	favorites.GET("", s.GetFavorites)
+	favorites.POST("", s.AddFavorite)
+	favorites.DELETE("", s.DeleteFavorite)
 }
