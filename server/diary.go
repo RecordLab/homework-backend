@@ -2,6 +2,7 @@ package server
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -15,12 +16,18 @@ import (
 func (s *Server) GetAllDiaries(c echo.Context) error {
 	var diaries []model.Diary
 	sortStr := c.QueryParam("sort")
-	if sortStr != "1" && sortStr != "-1" {
+	if sortStr != "" && (sortStr != "1" && sortStr != "-1") {
 		return echo.NewHTTPError(http.StatusBadRequest, "정렬기준을 확인해주세요.")
 	}
-	sort, err := strconv.Atoi(sortStr)
-	if err != nil {
-		return nil
+	var sort int
+	var err error
+	if sortStr == "" {
+		sort = -1
+	} else {
+		sort, err = strconv.Atoi(sortStr)
+		if err != nil {
+			return nil
+		}
 	}
 	content := c.QueryParam("search")
 	if content == "" {
@@ -67,12 +74,19 @@ func (s *Server) GetCalendar(c echo.Context) error {
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
-	if req.Sort != "1" && req.Sort != "-1" {
+	fmt.Println(req.Date + req.Type + req.Sort)
+	if req.Sort != "" && (req.Sort != "1" && req.Sort != "-1") {
 		return echo.NewHTTPError(http.StatusBadRequest, "정렬기준을 확인해주세요.")
 	}
-	sort, err := strconv.Atoi(req.Sort)
-	if err != nil {
-		return nil
+	var sort int
+	var err error
+	if req.Sort == "" {
+		sort = -1
+	} else {
+		sort, err = strconv.Atoi(req.Sort)
+		if err != nil {
+			return nil
+		}
 	}
 	if req.Date == "" || req.Type == "" {
 		return echo.NewHTTPError(http.StatusBadRequest, "파라미터가 올바르지 않습니다.")

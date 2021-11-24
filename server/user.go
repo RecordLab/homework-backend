@@ -101,7 +101,7 @@ func (s *Server) KakaoLogin(c echo.Context) (model.User, error) {
 		return model.User{}, err
 	}
 	defer resp.Body.Close()
-	type Response struct {
+	var result struct {
 		ID          int
 		ConnectedAt string `json:"connected_at"`
 		Properties  struct {
@@ -110,9 +110,11 @@ func (s *Server) KakaoLogin(c echo.Context) (model.User, error) {
 		Message string `json:"msg"`
 		Code    int
 	}
-	var result Response
-	bytes, _ := ioutil.ReadAll(resp.Body)
-	if err = json.Unmarshal(bytes, &result); err != nil {
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return model.User{}, err
+	}
+	if err = json.Unmarshal(b, &result); err != nil {
 		return model.User{}, err
 	}
 	if resp.StatusCode != 200 {
@@ -136,17 +138,16 @@ func (s *Server) KakaoLogin(c echo.Context) (model.User, error) {
 }
 
 func (s *Server) GoogleLogin(c echo.Context) (model.User, error) {
-	type TokenInfo struct {
-		Email   string
-		Name    string
-		Picture string
-	}
 	idToken := c.QueryParam("id_token")
 	v, err := idtoken.Validate(c.Request().Context(), idToken, os.Getenv("GOOGLE_KEY"))
 	if err != nil {
 		return model.User{}, err
 	}
-	var tokenInfo TokenInfo
+	var tokenInfo struct {
+		Email   string
+		Name    string
+		Picture string
+	}
 	if err := mapstructure.Decode(v.Claims, &tokenInfo); err != nil {
 		return model.User{}, err
 	}

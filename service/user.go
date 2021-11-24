@@ -63,6 +63,18 @@ func (us *UserService) DeleteUser(ctx context.Context, userID string) error {
 	}); err != nil {
 		return err
 	}
+	coll = us.mc.Database(us.cfg.Database).Collection("diaries")
+	if _, err := coll.DeleteMany(ctx, bson.M{
+		model.DiaryUserIDKey: userID,
+	}); err != nil {
+		return err
+	}
+	coll = us.mc.Database(us.cfg.Database).Collection("favorites")
+	if _, err := coll.DeleteMany(ctx, bson.M{
+		model.FavoriteUserIDKey: userID,
+	}); err != nil {
+		return err
+	}
 	return nil
 }
 
