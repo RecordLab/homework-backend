@@ -62,7 +62,7 @@ GoLand 2021.2.4
 echo framework 4.6.1
 MongoDB 5.0.3
 Docker 20.10.10
-Docker Comopose 1.29.2
+Docker Compose 1.29.2
 ```
 ## 🐵 기여
 1. 해당 프로젝트를 Fork 하세요
